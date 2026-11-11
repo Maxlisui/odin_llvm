@@ -78,6 +78,10 @@ when ODIN_OS == .Windows {
 * Object linking layers returned by this function will become owned by the
 * LLJIT instance. The client is not responsible for managing their lifetimes
 * after the function returns.
+*
+* FIXME: This method needs to be updated to take a JITLinkMemoryManager
+*        argument.
+*
 */
 OrcLLJITBuilderObjectLinkingLayerCreatorFunction :: proc "c" (Ctx: rawptr, ES: OrcExecutionSessionRef, Triple: cstring) -> OrcObjectLayerRef
 

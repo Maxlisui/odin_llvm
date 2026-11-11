@@ -62,7 +62,10 @@ when ODIN_OS == .Windows {
 Opcode :: enum u32 {
 	/* Terminator Instructions */
 	Ret            = 1,
-	Br             = 2,
+
+	/* removed 2 due to API changes */
+	UncondBr       = 70,
+	CondBr         = 71,
 	Switch         = 3,
 	IndirectBr     = 4,
 	Invoke         = 5,
@@ -172,6 +175,7 @@ TypeKind :: enum u32 {
 	BFloatTypeKind         = 18, /**< 16 bit brain floating point type */
 	X86_AMXTypeKind        = 19, /**< X86 AMX */
 	TargetExtTypeKind      = 20, /**< Target extension type */
+	ByteTypeKind           = 21, /**< Arbitrary bit width bytes */
 }
 
 Linkage :: enum u32 {
@@ -279,15 +283,16 @@ ValueKind :: enum u32 {
 	ConstantDataArrayValueKind     = 16,
 	ConstantDataVectorValueKind    = 17,
 	ConstantIntValueKind           = 18,
-	ConstantFPValueKind            = 19,
-	ConstantPointerNullValueKind   = 20,
-	ConstantTokenNoneValueKind     = 21,
-	MetadataAsValueValueKind       = 22,
-	InlineAsmValueKind             = 23,
-	InstructionValueKind           = 24,
-	PoisonValueValueKind           = 25,
-	ConstantTargetNoneValueKind    = 26,
-	ConstantPtrAuthValueKind       = 27,
+	ConstantByteValueKind          = 19,
+	ConstantFPValueKind            = 20,
+	ConstantPointerNullValueKind   = 21,
+	ConstantTokenNoneValueKind     = 22,
+	MetadataAsValueValueKind       = 23,
+	InlineAsmValueKind             = 24,
+	InstructionValueKind           = 25,
+	PoisonValueValueKind           = 26,
+	ConstantTargetNoneValueKind    = 27,
+	ConstantPtrAuthValueKind       = 28,
 }
 
 IntPredicate :: enum u32 {
@@ -358,46 +363,52 @@ AtomicOrdering :: enum u32 {
 }
 
 AtomicRMWBinOp :: enum u32 {
-	Xchg     = 0,  /**< Set the new value and return the one old */
-	Add      = 1,  /**< Add a value and return the old one */
-	Sub      = 2,  /**< Subtract a value and return the old one */
-	And      = 3,  /**< And a value and return the old one */
-	Nand     = 4,  /**< Not-And a value and return the old one */
-	Or       = 5,  /**< OR a value and return the old one */
-	Xor      = 6,  /**< Xor a value and return the old one */
-	Max      = 7,  /**< Sets the value if it's greater than the
+	Xchg        = 0,  /**< Set the new value and return the one old */
+	Add         = 1,  /**< Add a value and return the old one */
+	Sub         = 2,  /**< Subtract a value and return the old one */
+	And         = 3,  /**< And a value and return the old one */
+	Nand        = 4,  /**< Not-And a value and return the old one */
+	Or          = 5,  /**< OR a value and return the old one */
+	Xor         = 6,  /**< Xor a value and return the old one */
+	Max         = 7,  /**< Sets the value if it's greater than the
                             original using a signed comparison and return
                             the old one */
-	Min      = 8,  /**< Sets the value if it's Smaller than the
+	Min         = 8,  /**< Sets the value if it's Smaller than the
                             original using a signed comparison and return
                             the old one */
-	UMax     = 9,  /**< Sets the value if it's greater than the
+	UMax        = 9,  /**< Sets the value if it's greater than the
                            original using an unsigned comparison and return
                            the old one */
-	UMin     = 10, /**< Sets the value if it's greater than the
+	UMin        = 10, /**< Sets the value if it's greater than the
                             original using an unsigned comparison and return
                             the old one */
-	FAdd     = 11, /**< Add a floating point value and return the
+	FAdd        = 11, /**< Add a floating point value and return the
                             old one */
-	FSub     = 12, /**< Subtract a floating point value and return the
+	FSub        = 12, /**< Subtract a floating point value and return the
                           old one */
-	FMax     = 13, /**< Sets the value if it's greater than the
+	FMax        = 13, /**< Sets the value if it's greater than the
                            original using an floating point comparison and
                            return the old one */
-	FMin     = 14, /**< Sets the value if it's smaller than the
+	FMin        = 14, /**< Sets the value if it's smaller than the
                            original using an floating point comparison and
                            return the old one */
-	UIncWrap = 15, /**< Increments the value, wrapping back to zero
+	UIncWrap    = 15, /**< Increments the value, wrapping back to zero
                                when incremented above input value */
-	UDecWrap = 16, /**< Decrements the value, wrapping back to
+	UDecWrap    = 16, /**< Decrements the value, wrapping back to
                                the input value when decremented below zero */
-	USubCond = 17, /**<Subtracts the value only if no unsigned
+	USubCond    = 17, /**<Subtracts the value only if no unsigned
                                  overflow */
-	USubSat  = 18, /**<Subtracts the value, clamping to zero */
-	FMaximum = 19, /**< Sets the value if it's greater than the
+	USubSat     = 18, /**<Subtracts the value, clamping to zero */
+	FMaximum    = 19, /**< Sets the value if it's greater than the
                            original using an floating point comparison and
                            return the old one */
-	FMinimum = 20, /**< Sets the value if it's smaller than the
+	FMinimum    = 20, /**< Sets the value if it's smaller than the
+                           original using an floating point comparison and
+                           return the old one */
+	FMaximumNum = 21, /**< Sets the value if it's greater than the
+                           original using an floating point comparison and
+                           return the old one */
+	FMinimumNum = 22, /**< Sets the value if it's smaller than the
                            original using an floating point comparison and
                            return the old one */
 }
@@ -547,6 +558,17 @@ DbgRecordKind :: enum u32 {
 DiagnosticHandler :: proc "c" (DiagnosticInfoRef, rawptr)
 YieldCallback     :: proc "c" (ContextRef, rawptr)
 
+/**
+* Represent different denormal handling kinds for use with
+* LLVMCreateDenormalFPEnvAttribute.
+*/
+DenormalModeKind :: enum u32 {
+	IEEE         = 0,
+	PreserveSign = 1,
+	PositiveZero = 2,
+	Dynamic      = 3,
+}
+
 @(default_calling_convention="c", link_prefix="LLVM")
 foreign lib {
 	/** Deallocate and destroy all ManagedStatic variables.
@@ -695,6 +717,26 @@ foreign lib {
 	* elements long.
 	*/
 	CreateConstantRangeAttribute :: proc(C: ContextRef, KindID: u32, NumBits: u32, LowerWords: [^]u64, UpperWords: [^]u64) -> AttributeRef ---
+
+	/**
+	* Create a DenormalFPEnv attribute.
+	*
+	* \p DefaultModeOutput is the assumed denormal handling for the outputs of most
+	*    floating-point types.
+	*
+	* \p DefaultModeInput is the assumed denormal handling for the inputs of most
+	*    floating-point types.
+	*
+	* \p FloatModeOutput is the assumed denormal handling for the outputs of
+	*    float. This should always be the same as as DefaultModeOutput for most
+	*    targets.
+	*
+	* \p FloatModeInput is the assumed denormal handling for the inputs of
+	*    float. This should always be the same as as DefaultModeInput for most
+	*    targets.
+	*
+	*/
+	CreateDenormalFPEnvAttribute :: proc(C: ContextRef, DefaultModeOutput: DenormalModeKind, DefaultModeInput: DenormalModeKind, FloatModeOutput: DenormalModeKind, FloatModeInput: DenormalModeKind) -> AttributeRef ---
 
 	/**
 	* Create a string attribute.
@@ -1233,6 +1275,12 @@ foreign lib {
 	PrintTypeToString :: proc(Val: TypeRef) -> cstring ---
 
 	/**
+	* Obtain a byte type from a context with specified bit width.
+	*/
+	ByteTypeInContext :: proc(C: ContextRef, NumBits: u32) -> TypeRef ---
+	GetByteTypeWidth  :: proc(ByteTy: TypeRef) -> u32 ---
+
+	/**
 	* Obtain an integer type from a context with specified bit width.
 	*/
 	Int1TypeInContext   :: proc(C: ContextRef) -> TypeRef ---
@@ -1736,19 +1784,20 @@ foreign lib {
 	* Determine whether a value instance is poisonous.
 	*/
 	IsPoison                  :: proc(Val: ValueRef) -> Bool ---
-	IsABlockAddress           :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstant               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantAggregateZero  :: proc(Val: ValueRef) -> ValueRef ---
-	IsAInlineAsm              :: proc(Val: ValueRef) -> ValueRef ---
+	IsABlockAddress           :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantDataSequential :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantArray          :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantDataVector     :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantExpr           :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantFP             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstantInt            :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantDataArray      :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantByte           :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantPointerNull    :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantStruct         :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantTokenNone      :: proc(Val: ValueRef) -> ValueRef ---
 	IsAConstantVector         :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstantPtrAuth        :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantInt            :: proc(Val: ValueRef) -> ValueRef ---
 	IsAGlobalValue            :: proc(Val: ValueRef) -> ValueRef ---
 	IsAGlobalAlias            :: proc(Val: ValueRef) -> ValueRef ---
 	IsAGlobalObject           :: proc(Val: ValueRef) -> ValueRef ---
@@ -1758,7 +1807,7 @@ foreign lib {
 	IsAUndefValue             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAPoisonValue            :: proc(Val: ValueRef) -> ValueRef ---
 	IsAInstruction            :: proc(Val: ValueRef) -> ValueRef ---
-	IsAUnaryOperator          :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstantPtrAuth        :: proc(Val: ValueRef) -> ValueRef ---
 	IsABinaryOperator         :: proc(Val: ValueRef) -> ValueRef ---
 	IsACallInst               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAIntrinsicInst          :: proc(Val: ValueRef) -> ValueRef ---
@@ -1774,57 +1823,59 @@ foreign lib {
 	IsAFCmpInst               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAICmpInst               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAExtractElementInst     :: proc(Val: ValueRef) -> ValueRef ---
+	IsAUnaryOperator          :: proc(Val: ValueRef) -> ValueRef ---
 	IsAGetElementPtrInst      :: proc(Val: ValueRef) -> ValueRef ---
-	IsAInsertElementInst      :: proc(Val: ValueRef) -> ValueRef ---
-	IsAInsertValueInst        :: proc(Val: ValueRef) -> ValueRef ---
-	IsALandingPadInst         :: proc(Val: ValueRef) -> ValueRef ---
-	IsAPHINode                :: proc(Val: ValueRef) -> ValueRef ---
-	IsASelectInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAShuffleVectorInst      :: proc(Val: ValueRef) -> ValueRef ---
 	IsAArgument               :: proc(Val: ValueRef) -> ValueRef ---
 	IsABasicBlock             :: proc(Val: ValueRef) -> ValueRef ---
+	IsAInlineAsm              :: proc(Val: ValueRef) -> ValueRef ---
 	IsAUser                   :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstantArray          :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstantDataSequential :: proc(Val: ValueRef) -> ValueRef ---
-	IsAConstantDataArray      :: proc(Val: ValueRef) -> ValueRef ---
-	IsAStoreInst              :: proc(Val: ValueRef) -> ValueRef ---
-	IsABranchInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsACleanupReturnInst      :: proc(Val: ValueRef) -> ValueRef ---
+	IsAConstant               :: proc(Val: ValueRef) -> ValueRef ---
+	IsAInsertElementInst      :: proc(Val: ValueRef) -> ValueRef ---
+	IsAInsertValueInst        :: proc(Val: ValueRef) -> ValueRef ---
+	IsACondBrInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsAUncondBrInst           :: proc(Val: ValueRef) -> ValueRef ---
+	IsAIndirectBrInst         :: proc(Val: ValueRef) -> ValueRef ---
+	IsAReturnInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsASwitchInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsAUnreachableInst        :: proc(Val: ValueRef) -> ValueRef ---
 	IsAResumeInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsACatchReturnInst        :: proc(Val: ValueRef) -> ValueRef ---
+	IsACleanupReturnInst      :: proc(Val: ValueRef) -> ValueRef ---
+	IsAShuffleVectorInst      :: proc(Val: ValueRef) -> ValueRef ---
+	IsACatchSwitchInst        :: proc(Val: ValueRef) -> ValueRef ---
 	IsACallBrInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFuncletPadInst         :: proc(Val: ValueRef) -> ValueRef ---
 	IsACatchPadInst           :: proc(Val: ValueRef) -> ValueRef ---
 	IsACleanupPadInst         :: proc(Val: ValueRef) -> ValueRef ---
 	IsAUnaryInstruction       :: proc(Val: ValueRef) -> ValueRef ---
-	IsASwitchInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsAAllocaInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsACastInst               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAAddrSpaceCastInst      :: proc(Val: ValueRef) -> ValueRef ---
-	IsABitCastInst            :: proc(Val: ValueRef) -> ValueRef ---
+	IsAPHINode                :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFPExtInst              :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFPToSIInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFPToUIInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFPTruncInst            :: proc(Val: ValueRef) -> ValueRef ---
 	IsAIntToPtrInst           :: proc(Val: ValueRef) -> ValueRef ---
 	IsAPtrToIntInst           :: proc(Val: ValueRef) -> ValueRef ---
-	IsAInvokeInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAIndirectBrInst         :: proc(Val: ValueRef) -> ValueRef ---
-	IsAReturnInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAUnreachableInst        :: proc(Val: ValueRef) -> ValueRef ---
-	IsACatchSwitchInst        :: proc(Val: ValueRef) -> ValueRef ---
+	IsASExtInst               :: proc(Val: ValueRef) -> ValueRef ---
+	IsASIToFPInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsATruncInst              :: proc(Val: ValueRef) -> ValueRef ---
+	IsAUIToFPInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAZExtInst               :: proc(Val: ValueRef) -> ValueRef ---
+	IsAExtractValueInst       :: proc(Val: ValueRef) -> ValueRef ---
 	IsALoadInst               :: proc(Val: ValueRef) -> ValueRef ---
 	IsAVAArgInst              :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFreezeInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsATruncInst              :: proc(Val: ValueRef) -> ValueRef ---
-	IsASIToFPInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAUIToFPInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsAExtractValueInst       :: proc(Val: ValueRef) -> ValueRef ---
+	IsALandingPadInst         :: proc(Val: ValueRef) -> ValueRef ---
+	IsASelectInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsAStoreInst              :: proc(Val: ValueRef) -> ValueRef ---
+	IsAInvokeInst             :: proc(Val: ValueRef) -> ValueRef ---
+	IsACatchReturnInst        :: proc(Val: ValueRef) -> ValueRef ---
+	IsABitCastInst            :: proc(Val: ValueRef) -> ValueRef ---
+	IsAAtomicCmpXchgInst      :: proc(Val: ValueRef) -> ValueRef ---
 	IsAFenceInst              :: proc(Val: ValueRef) -> ValueRef ---
 	IsAAtomicRMWInst          :: proc(Val: ValueRef) -> ValueRef ---
-	IsAAtomicCmpXchgInst      :: proc(Val: ValueRef) -> ValueRef ---
-	IsAAllocaInst             :: proc(Val: ValueRef) -> ValueRef ---
-	IsASExtInst               :: proc(Val: ValueRef) -> ValueRef ---
+	IsABranchInst             :: proc(Val: ValueRef) -> ValueRef ---
 	IsAMDNode                 :: proc(Val: ValueRef) -> ValueRef ---
 	IsAValueAsMetadata        :: proc(Val: ValueRef) -> ValueRef ---
 	IsAMDString               :: proc(Val: ValueRef) -> ValueRef ---
@@ -1983,6 +2034,32 @@ foreign lib {
 	ConstIntOfStringAndSize :: proc(IntTy: TypeRef, Text: cstring, SLen: u32, Radix: u8) -> ValueRef ---
 
 	/**
+	* Obtain a constant value for a byte type.
+	*
+	* The returned value corresponds to a llvm::ConstantByte.
+	*
+	* @see llvm::ConstantByte::get()
+	*
+	* @param ByteTy Byte type to obtain value of.
+	* @param N The value the returned instance should refer to.
+	*/
+	ConstByte :: proc(ByteTy: TypeRef, N: u64) -> ValueRef ---
+
+	/**
+	* Obtain a constant value for a byte of arbitrary precision.
+	*
+	* @see llvm::ConstantByte::get()
+	*/
+	ConstByteOfArbitraryPrecision :: proc(ByteTy: TypeRef, NumWords: u32, Words: [^]u64) -> ValueRef ---
+
+	/**
+	* Obtain a constant value for a byte parsed from a string with specified
+	* length.
+	* @see llvm::ConstantByte::get()
+	*/
+	ConstByteOfStringAndSize :: proc(ByteTy: TypeRef, Text: cstring, SLen: i32, Radix: u8) -> ValueRef ---
+
+	/**
 	* Obtain a constant value referring to a double floating point value.
 	*/
 	ConstReal :: proc(RealTy: TypeRef, N: f64) -> ValueRef ---
@@ -2020,6 +2097,20 @@ foreign lib {
 	* @see llvm::ConstantInt::getSExtValue()
 	*/
 	ConstIntGetSExtValue :: proc(ConstantVal: ValueRef) -> i64 ---
+
+	/**
+	* Obtain the zero extended value for a byte constant value.
+	*
+	* @see llvm::ConstantByte::getZExtValue()
+	*/
+	ConstByteGetZExtValue :: proc(ConstantVal: ValueRef) -> u64 ---
+
+	/**
+	* Obtain the sign extended value for a byte constant value.
+	*
+	* @see llvm::ConstantByte::getSExtValue()
+	*/
+	ConstByteGetSExtValue :: proc(ConstantVal: ValueRef) -> i64 ---
 
 	/**
 	* Obtain the double value for an floating point constant value.
@@ -2469,20 +2560,20 @@ foreign lib {
 	GetIntrinsicID :: proc(Fn: ValueRef) -> u32 ---
 
 	/**
-	* Get or insert the declaration of an intrinsic.  For overloaded intrinsics,
-	* parameter types must be provided to uniquely identify an overload.
+	* Get or insert the declaration of an intrinsic. For overloaded intrinsics,
+	* overload types must be provided to uniquely identify an overload.
 	*
 	* @see llvm::Intrinsic::getOrInsertDeclaration()
 	*/
-	GetIntrinsicDeclaration :: proc(Mod: ModuleRef, ID: u32, ParamTypes: ^TypeRef, ParamCount: i32) -> ValueRef ---
+	GetIntrinsicDeclaration :: proc(Mod: ModuleRef, ID: u32, OverloadTypes: ^TypeRef, OverloadCount: i32) -> ValueRef ---
 
 	/**
-	* Retrieves the type of an intrinsic.  For overloaded intrinsics, parameter
+	* Retrieves the type of an intrinsic. For overloaded intrinsics, overload
 	* types must be provided to uniquely identify an overload.
 	*
 	* @see llvm::Intrinsic::getType()
 	*/
-	IntrinsicGetType :: proc(Ctx: ContextRef, ID: u32, ParamTypes: ^TypeRef, ParamCount: i32) -> TypeRef ---
+	IntrinsicGetType :: proc(Ctx: ContextRef, ID: u32, OverloadTypes: ^TypeRef, OverloadCount: i32) -> TypeRef ---
 
 	/**
 	* Retrieves the name of an intrinsic.
@@ -2492,11 +2583,11 @@ foreign lib {
 	IntrinsicGetName :: proc(ID: u32, NameLength: ^i32) -> cstring ---
 
 	/** Deprecated: Use LLVMIntrinsicCopyOverloadedName2 instead. */
-	IntrinsicCopyOverloadedName :: proc(ID: u32, ParamTypes: ^TypeRef, ParamCount: i32, NameLength: ^i32) -> cstring ---
+	IntrinsicCopyOverloadedName :: proc(ID: u32, OverloadTypes: ^TypeRef, OverloadCount: i32, NameLength: ^i32) -> cstring ---
 
 	/**
 	* Copies the name of an overloaded intrinsic identified by a given list of
-	* parameter types.
+	* overload types.
 	*
 	* Unlike LLVMIntrinsicGetName, the caller is responsible for freeing the
 	* returned string.
@@ -2505,7 +2596,7 @@ foreign lib {
 	*
 	* @see llvm::Intrinsic::getName()
 	*/
-	IntrinsicCopyOverloadedName2 :: proc(Mod: ModuleRef, ID: u32, ParamTypes: ^TypeRef, ParamCount: i32, NameLength: ^i32) -> cstring ---
+	IntrinsicCopyOverloadedName2 :: proc(Mod: ModuleRef, ID: u32, OverloadTypes: ^TypeRef, OverloadCount: i32, NameLength: ^i32) -> cstring ---
 
 	/**
 	* Obtain if the intrinsic identified by the given ID is overloaded.
@@ -3480,29 +3571,27 @@ foreign lib {
 	SetSuccessor :: proc(Term: ValueRef, i: u32, block: BasicBlockRef) ---
 
 	/**
-	* Return if a branch is conditional.
+	* Return if an instruction is a conditional branch.
 	*
-	* This only works on llvm::BranchInst instructions.
-	*
-	* @see llvm::BranchInst::isConditional
+	* Deprecated: Use LLVMIsACondBrInst instead.
 	*/
 	IsConditional :: proc(Branch: ValueRef) -> Bool ---
 
 	/**
 	* Return the condition of a branch instruction.
 	*
-	* This only works on llvm::BranchInst instructions.
+	* This only works on llvm::CondBrInst instructions.
 	*
-	* @see llvm::BranchInst::getCondition
+	* @see llvm::CondBrInst::getCondition
 	*/
 	GetCondition :: proc(Branch: ValueRef) -> ValueRef ---
 
 	/**
 	* Set the condition of a branch instruction.
 	*
-	* This only works on llvm::BranchInst instructions.
+	* This only works on llvm::CondBrInst instructions.
 	*
-	* @see llvm::BranchInst::setCondition
+	* @see llvm::CondBrInst::setCondition
 	*/
 	SetCondition :: proc(Branch: ValueRef, Cond: ValueRef) ---
 
@@ -3662,17 +3751,16 @@ foreign lib {
 	* current debug location for the given builder.  If the builder has no current
 	* debug location, this function is a no-op.
 	*
-	* @deprecated LLVMSetInstDebugLocation is deprecated in favor of the more general
-	*             LLVMAddMetadataToInst.
-	*
 	* @see llvm::IRBuilder::SetInstDebugLocation()
 	*/
 	SetInstDebugLocation :: proc(Builder: BuilderRef, Inst: ValueRef) ---
 
 	/**
-	* Adds the metadata registered with the given builder to the given instruction.
+	* Same as LLVMSetInstDebugLocation.
 	*
-	* @see llvm::IRBuilder::AddMetadataToInst()
+	* @deprecated Use the identical LLVMSetInstDebugLocation.
+	*
+	* @see llvm::IRBuilder::SetInstDebugLocation()
 	*/
 	AddMetadataToInst :: proc(Builder: BuilderRef, Inst: ValueRef) ---
 

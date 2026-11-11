@@ -45,6 +45,7 @@ it is generally recommended that you generate the bindings yourself.
 
 ### Version History
 
+- [23.1.5](https://github.com/Maxlisui/odin_llvm/tree/23.1.5)
 - [22.1.8](https://github.com/Maxlisui/odin_llvm/tree/22.1.8)
 
 ## Generator
