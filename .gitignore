@@ -1,0 +1,10 @@
+llvm-c
+*.exe
+imports.inc
+bindgen.sjson
+*.dll
+*.bin
+odin_llvm
+*.lib
+*.so
+*.dylib

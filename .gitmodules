@@ -1,0 +1,4 @@
+[submodule "odin-c-bindgen"]
+	path = odin-c-bindgen
+	url = https://github.com/Maxlisui/odin-c-bindgen.git
+	branch = non-styem-wide-libclang

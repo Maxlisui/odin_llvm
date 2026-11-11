@@ -1,0 +1,41 @@
+inputs = [
+	"llvm-c"
+]
+
+
+output_folder = "llvm"
+imports_file = "resources/imports.inc"
+package_name = "llvm"
+remove_function_prefix = "LLVM"
+remove_type_prefix = "LLVM"
+remove_macro_prefix = "LLVM"
+procedures_at_end = true
+
+type_overrides = {
+  "LLVMBool" = "b32",
+  "LLVMFastMathFlags" = "FastMathFlag"
+  "LLVMGEPNoWrapFlags" = "GEPFlag"
+}
+
+deanon_enums = {
+  "LLVMFastMathAllowReassoc" = "FastMathFlag"
+  "LLVMGEPFlagInBounds" = "GEPFlag"
+}
+
+bit_setify = {
+  "DisassemblerOption" = "DisassemblerOptionKind"
+  "FastMathFlag" = "FastMathFlagBit"
+  "GEPFlag" = "GEPFlagBit"
+  "JITSymbolGenericFlags" = "JITSymbolGenericFlagsBit"
+}
+
+enumify_macros = {
+  "LLVMDisassembler_Option_" = "DisassemblerOption"
+  "LLVMDisassembler_VariantKind_" = "DisassemblerVariantKind"
+}
+
+clang_include_paths = [
+  "."
+  "{LLVM_INCLUDE_DIR}"
+]
+
