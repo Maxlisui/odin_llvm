@@ -1,0 +1,4 @@
+package llvm
+
+LLVM_USE_SYSTEM_LIBS :: #config(LLVM_USE_SYSTEM_LIBS, true)
+LLVM_USE_PREFER_LOCAL_LIBS :: #config(LLVM_USE_PREFER_LOCAL_LIBS, true)

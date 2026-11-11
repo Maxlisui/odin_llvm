@@ -43,6 +43,10 @@ When calling them, ensure your installation includes all targets.
 To get bindings that fit your installation and requirements,
 it is generally recommended that you generate the bindings yourself.
 
+### Version History
+
+- [22.1.8](https://github.com/Maxlisui/odin_llvm/tree/22.1.8)
+
 ## Generator
 
 The generator is based on the work of

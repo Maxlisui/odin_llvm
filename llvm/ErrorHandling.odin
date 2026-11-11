@@ -1,0 +1,90 @@
+/*===-- llvm-c/ErrorHandling.h - Error Handling C Interface -------*- C -*-===*\
+|*                                                                            *|
+|* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
+|* Exceptions.                                                                *|
+|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
+|*                                                                            *|
+|*===----------------------------------------------------------------------===*|
+|*                                                                            *|
+|* This file defines the C interface to LLVM's error handling mechanism.      *|
+|*                                                                            *|
+\*===----------------------------------------------------------------------===*/
+package llvm
+
+when ODIN_OS == .Windows {
+  when LLVM_USE_SYSTEM_LIBS {
+    when LLVM_USE_PREFER_LOCAL_LIBS && #exists("./lib/LLVM-C.lib") {
+      foreign import lib "./lib/LLVM-C.lib"
+    } else {
+      foreign import lib "system:LLVM-C.lib"
+    }
+  } else {
+    when !#exists("./lib/LLVM-C.lib") {
+      #panic("LLVM_USE_SYSTEM_LIBS is false but lib/LLVM-C.lib does not exist!")
+    }
+    foreign import lib "./lib/LLVM-C.lib"
+  }
+} else when ODIN_OS == .Linux {
+  when LLVM_USE_SYSTEM_LIBS {
+    when LLVM_USE_PREFER_LOCAL_LIBS && #exists("./lib/libLLVM.so") {
+      foreign import lib "./lib/libLLVM.so"
+    } else {
+      foreign import lib "system:LLVM"
+    }
+  } else {
+    when !#exists("./lib/libLLVM.so") {
+      #panic("LLVM_USE_SYSTEM_LIBS is false but lib/libLLVM.so does not exist!")
+    }
+    foreign import lib "./lib/libLLVM.so"
+  }
+} else when ODIN_OS == .Darwin {
+  when LLVM_USE_SYSTEM_LIBS {
+    when LLVM_USE_PREFER_LOCAL_LIBS && #exists("./lib/libLLVM.dylib") {
+      foreign import lib "./lib/libLLVM.dylib"
+    } else {
+      foreign import lib "system:LLVM"
+    }
+  } else {
+    when !#exists("./lib/libLLVM.dylib") {
+      #panic("LLVM_USE_SYSTEM_LIBS is false but lib/libLLVM.dylib does not exist!")
+    }
+    foreign import lib "./lib/libLLVM.dylib"
+  }
+} else {
+  #panic("Unsupported target platform")
+}
+
+
+/**
+* @addtogroup LLVMCError
+*
+* @{
+*/
+FatalErrorHandler :: proc "c" (Reason: cstring)
+
+@(default_calling_convention="c", link_prefix="LLVM")
+foreign lib {
+	/**
+	* Install a fatal error handler. By default, if LLVM detects a fatal error, it
+	* will call exit(1). This may not be appropriate in many contexts. For example,
+	* doing exit(1) will bypass many crash reporting/tracing system tools. This
+	* function allows you to install a callback that will be invoked prior to the
+	* call to exit(1).
+	*/
+	InstallFatalErrorHandler :: proc(Handler: FatalErrorHandler) ---
+
+	/**
+	* Reset the fatal error handler. This resets LLVM's fatal error handling
+	* behavior to the default.
+	*/
+	ResetFatalErrorHandler :: proc() ---
+
+	/**
+	* Enable LLVM's built-in stack trace code. This intercepts the OS's crash
+	* signals and prints which component of LLVM you were in at the time if the
+	* crash.
+	*/
+	EnablePrettyStackTrace :: proc() ---
+}
+
